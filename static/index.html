@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Connect 4 vs minimax</title>
+<title>connect 4</title>
 <style>
 :root {
   --bg: #12141a;
@@ -28,13 +28,27 @@ body {
 main {
   width: 100%;
   max-width: 460px;
-  background: rgba(255, 255, 255, 0.55); /* Translucent white glass */
-  backdrop-filter: blur(14px);            /* Strong blur to blend background */
-  -webkit-backdrop-filter: blur(14px);
   padding: 24px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15); /* Soft ambient shadow */
+  border-radius: 28px;
+
+  /* Frosted glass base + Liquid SVG filter */
+  background: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.05)),
+    rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px) saturate(200%) url(#liquid-refraction);
+  -webkit-backdrop-filter: blur(16px) saturate(200%) url(#liquid-refraction);
+
+  /* 1. Crisp outer edge that simulates a light source from top-left */
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+  border-right-color: rgba(255, 255, 255, 0.15);
+
+  /* 2. Inner reflections and outer ambient shadow */
+  box-shadow: 
+    0 30px 60px rgba(0, 0, 0, 0.12),               /* Deep outer shadow for depth */
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),      /* Strong top inner shine */
+    inset 0 -1px 2px rgba(255, 255, 255, 0.3),     /* Subtle bottom inner bounce light */
+    inset 1px 0 2px rgba(255, 255, 255, 0.6);      /* Left edge inner shine */
 }
 h1{font-size:1.5rem;margin:0 0 4px}
 p.sub{color:var(--mute);margin:0 0 16px;font-size:.92rem}
@@ -59,9 +73,20 @@ label.chk{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:.9
 #stats dl{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;margin:0}
 #stats dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums}
 .key{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:baseline;margin-right:4px}
-</style></head><body><main>
+</style></head><body>
+
+<!-- Hidden SVG Filter for Refraction/Distortion -->
+<svg xmlns="http://w3.org/2000/svg" style="display: none;">
+  <filter id="liquid-refraction">
+    <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+    <feGaussianBlur in="noise" stdDeviation="5" result="blurredNoise" />
+    <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="30" xChannelSelector="R" yChannelSelector="G" />
+  </filter>
+</svg>
+
+<main>
 <h1>connect 4</h1>
-<p class="sub">you're playing as <span class="key" style="background:var(--you)"></span> your AI opponent is <span class="key" style="background:var(--ai)"></span> and will beat you everytime :p</p>
+<p class="sub">you're playing as <span class="key" style="background:var(--you)"></span>  your AI opponent is <span class="key" style="background:var(--ai)"></span>  and will beat you everytime :p</p>
 <div class="bar">
   <label class="chk"><input type="checkbox" id="aifirst">Want AI to start first?</label>
   <button class="primary" id="new">New game</button>
