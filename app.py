@@ -5,7 +5,6 @@ from game import Game, HUMAN
 
 app = Flask(__name__, static_folder="static")
 GAMES = {}
-DEPTH = {"easy": 2, "medium": 4, "hard": 6}
 
 
 @app.after_request
@@ -37,7 +36,7 @@ def index():
 @app.post("/api/new")
 def new_game():
     d = request.get_json(silent=True) or {}
-    g = Game(ai_first=bool(d.get("ai_first")), depth=DEPTH.get(d.get("difficulty"), 4))
+    g = Game(ai_first=bool(d.get("ai_first")), depth=4)
     gid = uuid.uuid4().hex
     GAMES[gid] = g
     if g.turn != HUMAN:

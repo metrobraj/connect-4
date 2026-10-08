@@ -34,7 +34,6 @@ label.chk{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:.9
 <h1>Connect 4</h1>
 <p class="sub">You are <span class="key" style="background:var(--you)"></span>amber. The Python AI is <span class="key" style="background:var(--ai)"></span>red and searches the game tree with alpha-beta pruning.</p>
 <div class="bar">
-  <select id="diff" aria-label="Difficulty"><option value="easy">Easy (depth 2)</option><option value="medium" selected>Medium (depth 4)</option><option value="hard">Hard (depth 6)</option></select>
   <label class="chk"><input type="checkbox" id="aifirst">AI moves first</label>
   <button class="primary" id="new">New game</button>
 </div>
@@ -75,7 +74,7 @@ function render(){
 }
 async function start(){
   busy=true;prev=null;
-  try{const j=await api('/api/new',{difficulty:$('#diff').value,ai_first:$('#aifirst').checked});id=j.id;state=j;}
+  try{const j=await api('/api/new',{ai_first:$('#aifirst').checked});id=j.id;state=j;}
   catch(e){$('#status').textContent=e.message;}
   busy=false;if(state)render();
 }
