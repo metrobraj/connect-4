@@ -1,9 +1,6 @@
 # connect-4
 
 Connect-4 is a web-based game that features a Minimax AI embedded with alpha-beta pruning.
-![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python)
-![Flask](https://img.shields.io/badge/Framework-Flask-000000?style=flat-square&logo=flask)
-![Frontend](https://img.shields.io/badge/UI-Liquid%20Glass-7b83a7?style=flat-square)
 
 ---
 
