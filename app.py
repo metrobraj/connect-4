@@ -29,8 +29,9 @@ def preflight(_):
 
 
 @app.get("/")
-def index():
-    return send_from_directory("static", "index.html")
+@app.get("/<path:filename>")
+def index(filename="index.html"):
+    return send_from_directory("static", filename)
 
 
 @app.post("/api/new")
