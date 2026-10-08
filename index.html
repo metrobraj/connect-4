@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect 4 vs minimax</title>
+<style>
+:root{--bg:#12141a;--ink:#e8eaf0;--mute:#8d93a3;--board:#24427a;--hole:#12141a;--you:#f4b03d;--ai:#e4533f;--line:#2a2e3a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Avenir Next","Segoe UI",system-ui,sans-serif;display:flex;justify-content:center;padding:20px 14px 40px}
+main{width:100%;max-width:460px}
+h1{font-size:1.5rem;margin:0 0 4px}
+p.sub{color:var(--mute);margin:0 0 16px;font-size:.92rem}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+select,button{font:inherit;background:#1c1f28;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+button.primary{background:var(--you);color:#1a1405;border-color:var(--you);font-weight:600}
+button:focus-visible,select:focus-visible{outline:2px solid var(--you);outline-offset:2px}
+label.chk{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:.9rem}
+#status{min-height:1.6em;font-weight:600;margin-bottom:10px}
+#grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:var(--board);padding:10px;border-radius:14px}
+.col{display:grid;grid-template-rows:repeat(6,1fr);gap:6px;background:none;border:0;padding:0;cursor:pointer;border-radius:8px}
+.col:disabled{cursor:default}
+.col:not(:disabled):hover,.col:focus-visible{background:rgba(255,255,255,.1);outline:none}
+.cell{aspect-ratio:1;border-radius:50%;background:var(--hole);box-shadow:inset 0 3px 6px rgba(0,0,0,.5)}
+.cell.p1{background:var(--you)}.cell.p2{background:var(--ai)}
+.cell.new{animation:fall .3s ease-in}
+.cell.win{box-shadow:0 0 0 3px #fff,0 0 14px #fff}
+@keyframes fall{from{transform:translateY(-260%)}}
+@media(prefers-reduced-motion:reduce){.cell.new{animation:none}}
+#stats{margin-top:18px;border-top:1px solid var(--line);padding-top:12px;color:var(--mute);font-size:.88rem}
+#stats h2{font-size:.95rem;color:var(--ink);margin:0 0 6px}
+#stats dl{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;margin:0}
+#stats dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums}
+.key{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:baseline;margin-right:4px}
+</style></head><body><main>
+<h1>Connect 4</h1>
+<p class="sub">You are <span class="key" style="background:var(--you)"></span>amber. The Python AI is <span class="key" style="background:var(--ai)"></span>red and searches the game tree with alpha-beta pruning.</p>
+<div class="bar">
+  <select id="diff" aria-label="Difficulty"><option value="easy">Easy (depth 2)</option><option value="medium" selected>Medium (depth 4)</option><option value="hard">Hard (depth 6)</option></select>
+  <label class="chk"><input type="checkbox" id="aifirst">AI moves first</label>
+  <button class="primary" id="new">New game</button>
+</div>
+<div id="status" role="status" aria-live="polite"></div>
+<div id="grid"></div>
+<section id="stats" hidden><h2>Last AI move</h2><dl id="sd"></dl></section>
+</main>
+<script>
+let id=null,state=null,busy=false,prev=null;
+const $=s=>document.querySelector(s),grid=$('#grid');
+const API=new URLSearchParams(location.search).get('api')||'';
+async function api(path,body){
+  let r,t;
+  try{r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});t=await r.text();}
+  catch(e){throw new Error('Cannot reach the Python server. Run "python app.py" and open http://127.0.0.1:5000');}
+  let j;try{j=JSON.parse(t);}catch(e){throw new Error('Got a web page instead of game data (HTTP '+r.status+'). Open the game through the Flask server at http://127.0.0.1:5000, not as a file or static preview.');}
+  if(!r.ok)throw new Error(j.error||'Request failed');return j;
+}
+function render(){
+  const win=new Set((state.win_cells||[]).map(([r,c])=>r+','+c));
+  const over=state.status!=='playing';
+  grid.innerHTML='';
+  for(let c=0;c<7;c++){
+    const b=document.createElement('button');b.className='col';b.setAttribute('aria-label','Drop in column '+(c+1));
+    b.disabled=busy||over||state.board[0][c]!==0;b.onclick=()=>play(c);
+    for(let r=0;r<6;r++){
+      const v=state.board[r][c],d=document.createElement('div');
+      d.className='cell'+(v?' p'+v:'')+(win.has(r+','+c)?' win':'');
+      if(v&&(!prev||prev[r][c]!==v))d.classList.add('new');
+      b.appendChild(d);
+    }
+    grid.appendChild(b);
+  }
+  prev=state.board.map(r=>[...r]);
+  $('#status').textContent=busy?'AI is thinking…':state.status==='win'?(state.winner===1?'You win!':'The AI wins.'):state.status==='draw'?'Draw: the board is full.':'Your turn: pick a column.';
+  const a=state.ai;$('#stats').hidden=!a;
+  if(a)$('#sd').innerHTML=`<dt>Chose</dt><dd>column ${a.column+1}</dd><dt>Search depth</dt><dd>${a.depth} moves ahead</dd><dt>Positions searched</dt><dd>${a.nodes.toLocaleString()}</dd><dt>Branches pruned</dt><dd>${a.pruned.toLocaleString()}</dd><dt>Time</dt><dd>${a.ms} ms</dd><dt>Position score</dt><dd>${Math.abs(a.score)>=1e5?(a.score>0?'forced win':'forced loss'):a.score}</dd>`;
+}
+async function start(){
+  busy=true;prev=null;
+  try{const j=await api('/api/new',{difficulty:$('#diff').value,ai_first:$('#aifirst').checked});id=j.id;state=j;}
+  catch(e){$('#status').textContent=e.message;}
+  busy=false;if(state)render();
+}
+async function play(col){
+  if(busy)return;
+  // show the human move immediately, then wait for the AI reply
+  busy=true;
+  const r=[...Array(6).keys()].reverse().find(r=>state.board[r][col]===0);
+  state.board[r][col]=1;render();
+  try{state=await api('/api/move',{id,col});}catch(e){$('#status').textContent=e.message;}
+  busy=false;render();
+}
+$('#new').onclick=start;start();
+</script></body></html>
