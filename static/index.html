@@ -39,7 +39,10 @@ label.chk{display:flex;align-items:center;gap:6px;color:var(--mute);font-size:.9
 </div>
 <div id="status" role="status" aria-live="polite"></div>
 <div id="grid"></div>
-<section id="stats" hidden><h2>Last AI move</h2><dl id="sd"></dl></section>
+<details id="stats" hidden>
+  <summary style="cursor: pointer; font-weight: bold; color: var(--ink); margin-bottom: 8px;">secret dev tools</summary>
+  <dl id="sd"></dl>
+</details>
 </main>
 <script>
 let id=null,state=null,busy=false,prev=null;
@@ -68,7 +71,7 @@ function render(){
     grid.appendChild(b);
   }
   prev=state.board.map(r=>[...r]);
-  $('#status').textContent=busy?'AI is thinking…':state.status==='win'?(state.winner===1?'You win!':'The AI wins.'):state.status==='draw'?'Draw: the board is full.':'Your turn: pick a column.';
+  $('#status').textContent=busy?'lemme think…':state.status==='win'?(state.winner===1?'You win!':'The AI wins.'):state.status==='draw'?'Draw: the board is full.':'Your turn: pick a column.';
   const a=state.ai;$('#stats').hidden=!a;
   if(a)$('#sd').innerHTML=`<dt>Chose</dt><dd>column ${a.column+1}</dd><dt>Search depth</dt><dd>${a.depth} moves ahead</dd><dt>Positions searched</dt><dd>${a.nodes.toLocaleString()}</dd><dt>Branches pruned</dt><dd>${a.pruned.toLocaleString()}</dd><dt>Time</dt><dd>${a.ms} ms</dd><dt>Position score</dt><dd>${Math.abs(a.score)>=1e5?(a.score>0?'forced win':'forced loss'):a.score}</dd>`;
 }
